@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class BankAccount extends Model
 {
@@ -19,10 +20,13 @@ class BankAccount extends Model
         return $this->hasMany(BankAccountCard::class);
     }
 
-    public function scopeWhereCardNumberIs($query, string $cardNumber)
+    /**
+     * Get the user that owns the BankAccount
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function user(): BelongsTo
     {
-        $query->whereHas('bankAccountCard', function (Builder $query) use ($cardNumber) {
-            $query->where('card_number', $cardNumber);
-        });
+        return $this->belongsTo(User::class);
     }
 }

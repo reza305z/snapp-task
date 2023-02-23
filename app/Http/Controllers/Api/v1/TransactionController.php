@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Exceptions\SameAccountTransactionException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\v1\TransactionCreateRequest;
 use App\Http\Resources\Api\v1\TransactionResource;
@@ -18,11 +19,18 @@ class TransactionController extends Controller
         BankAccountCard $bankAccountCard,
         TransactionService $transactionService
     ) {
+
         try {
             $transaction = $transactionService->create(
-                $bankAccountCard,
-                $request->validated()['receiver_card_number'],
-                $request->validated()['amount']
+                senderUser: $request->user(),
+                senderBankAccountCard: $bankAccountCard,
+                receiverCardNumber: $request->validated()['receiver_card_number'],
+                amount: $request->validated()['amount']
+            );
+        } catch (SameAccountTransactionException $exception) {
+            return $this->jsonResponse(
+                message: $exception->getMessage(),
+                status: $exception->getCode()
             );
         } catch (Exception $exception) {
             return $this->jsonResponse(

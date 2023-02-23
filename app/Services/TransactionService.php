@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\BankAccount;
+use App\Exceptions\SameAccountTransactionException;
 use App\Models\BankAccountCard;
 use App\Models\Enums\TransactionStatusEnum;
 use App\Models\Transaction;
@@ -12,25 +12,33 @@ use App\Notifications\WithdrawTransactionNotification;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class TransactionService
 {
-    public function create(BankAccountCard $bankAccountCard, string $receiverCardNumber, int $amount)
-    {
+    public function create(
+        User $senderUser,
+        BankAccountCard $senderBankAccountCard,
+        string $receiverCardNumber,
+        int $amount
+    ): Transaction {
+
+        $receiverBankAccountCard = BankAccountCard::firstWhere('card_number', $receiverCardNumber);
+
+        throw_if($receiverBankAccountCard->bankAccount->is($senderBankAccountCard->bankAccount), SameAccountTransactionException::class);
+
         try {
             DB::beginTransaction();
             $transaction = Transaction::create([
-                'sender_card_id' => $bankAccountCard->id,
-                'receiver_card_id' => $receiverCardNumber,
+                'sender_card_id' => $senderBankAccountCard->id,
+                'receiver_card_id' => $receiverBankAccountCard->id,
                 'amount' => $amount,
                 'status' => TransactionStatusEnum::Done,
             ]);
             $transaction->transactionWage()->create([
                 'amount' => 5_000,
             ]);
-            $bankAccountCard->bankAccount()->decrement('balance', $amount);
-            $receiverBankAccount = BankAccount::whereCardNumberIs($receiverCardNumber)->increment('balance', $amount);
+            $senderBankAccountCard->bankAccount()->decrement('balance', $amount);
+            $receiverBankAccountCard->bankAccount()->increment('balance', $amount);
             DB::commit();
         } catch (Exception $exception) {
             DB::rollBack();
@@ -38,19 +46,19 @@ class TransactionService
             throw new Exception();
         }
 
-        auth()->user()->notify(new WithdrawTransactionNotification(
-            accountNumber: $bankAccountCard->bankAccount->account_number,
+        $senderUser->notify(new WithdrawTransactionNotification(
+            accountNumber: $senderBankAccountCard->bankAccount->account_number,
             amount: number_format($amount),
             method: 'درگاه پرداخت',
-            balance: $bankAccountCard->bankAccount->balance,
+            balance: $senderBankAccountCard->bankAccount->balance,
             dateTime: $dateTime = verta($transaction->created_at)->format('Y/m/d H:i')
         ));
 
-        User::whereCardNumberIs(cardNumber: $receiverCardNumber)->first()->notify(new DepositTransactionNotification(
-            accountNumber: $receiverBankAccount->account_number,
+        $receiverBankAccountCard->user->notify(new DepositTransactionNotification(
+            accountNumber: $receiverBankAccountCard->bankAccount->account_number,
             amount: number_format($amount),
             method: 'درگاه پرداخت',
-            balance: $receiverBankAccount->balance + $amount,
+            balance: $receiverBankAccountCard->bankAccount->balance + $amount,
             dateTime: $dateTime
         ));
 

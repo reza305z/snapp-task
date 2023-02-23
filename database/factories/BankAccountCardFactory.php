@@ -17,7 +17,7 @@ class BankAccountCardFactory extends Factory
     public function definition(): array
     {
         return [
-            'uuid' => fake()->uuid(),
+            'unique_id' => fake()->uuid(),
             'card_number' => fake()->unique()->numberBetween(1_000_000_000_000_000, 9_999_999_999_999_999)
         ];
     }

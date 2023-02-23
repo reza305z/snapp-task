@@ -3,7 +3,14 @@
 namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+
+use App\Models\BankAccount;
+use App\Models\BankAccountCard;
+use App\Models\Transaction;
+use App\Models\TransactionWage;
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -12,11 +19,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        $users = User::factory(10)->create();
+        foreach ($users as $user) {
+            $BankAccount = BankAccount::factory()->for($user)->create();
+            BankAccountCard::factory(2)
+                ->for($user)
+                ->for($BankAccount)
+                ->create();
+        }
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        $bankAccountCards = BankAccountCard::pluck('id')->toArray();
+
+        Transaction::factory(100)
+            ->has(TransactionWage::factory())
+            ->create([
+                'sender_card_id' => array_rand($bankAccountCards),
+                'receiver_card_id' => array_rand($bankAccountCards),
+            ]);
     }
 }

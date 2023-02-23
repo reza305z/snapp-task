@@ -26,6 +26,14 @@ class User extends Authenticatable
     ];
 
     /**
+     * Get all of the bankAccounts for the User
+     */
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(BankAccount::class);
+    }
+
+    /**
      * Get all of the bankAccountCards for the User
      */
     public function bankAccountCards(): HasMany
@@ -39,13 +47,6 @@ class User extends Authenticatable
     public function transactions(): HasManyThrough
     {
         return $this->hasManyThrough(Transaction::class, BankAccountCard::class);
-    }
-
-    public function scopeWhereCardNumberIs($query, string $cardNumber)
-    {
-        $query->whereHas('bankAccountCard', function (Builder $query) use ($cardNumber) {
-            $query->where('card_number', $cardNumber);
-        });
     }
 
     public function scopeUsersWithMostTransactions($query, int $userNumber, int $transactionNumber)

@@ -11,6 +11,14 @@ class BankAccountCard extends Model
     use HasFactory;
 
     /**
+     * Get the user that owns the BankAccountCard
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
      * Get the BankAccount that owns the BankAccountCard
      */
     public function bankAccount(): BelongsTo

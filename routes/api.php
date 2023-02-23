@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
     Route::post('/transaction/{bank_account_card:unique_id}', [TransactionController::class, 'create'])->can('create', 'bank_account_card');
     Route::get('/user/index/most-transaction', [TransactionController::class, 'usersWithMostTransactions']);
 });
