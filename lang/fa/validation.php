@@ -5,6 +5,7 @@ return [
     'attributes' => [
         'receiver_card_number' => 'شماره کارت مقصد',
         'amount' => 'مبلغ',
+        'mobile' => 'موبایل',
     ],
     'accepted' => ':attribute باید پذیرفته شده باشد',
     'active_url' => ':attribute یک URL معتبر نیست',

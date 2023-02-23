@@ -15,7 +15,7 @@ class TransactionResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'account_number' => $this->bankAccount->account_number,
+            'account_number' => $this->sender->bankAccount->account_number,
             'amount' => $this->amount,
             'created_at' => $this->created_at->toDateTimeString(),
             'status' => $this->status->displayTitle(),

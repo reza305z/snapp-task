@@ -17,7 +17,7 @@ class TransactionWageFactory extends Factory
     public function definition(): array
     {
         return [
-            'amount' => 5_000
+            'amount' => 5_000,
         ];
     }
 }

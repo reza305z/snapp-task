@@ -2,17 +2,18 @@
 
 namespace Tests\Unit\Services;
 
+use App\Exceptions\InsufficientBalanceTransactionException;
 use App\Exceptions\SameAccountTransactionException;
-use App\Models\User;
 use App\Models\BankAccount;
 use App\Models\BankAccountCard;
-use Tests\TestCase;
-use App\Services\TransactionService;
 use App\Models\Enums\TransactionStatusEnum;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\User;
 use App\Notifications\DepositTransactionNotification;
 use App\Notifications\WithdrawTransactionNotification;
+use App\Services\TransactionService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
+use Tests\TestCase;
 
 class TransactionServiceTest extends TestCase
 {
@@ -37,7 +38,7 @@ class TransactionServiceTest extends TestCase
             $senderUser,
             $senderBankAccountCard,
             $receiverBankAccountCard->card_number,
-            $amount = mt_rand(10_000, 500_000_000)
+            $amount = mt_rand(10_000, $senderBankAccount->balance)
         );
 
         $this->assertDatabaseCount('transactions', 1);
@@ -96,6 +97,43 @@ class TransactionServiceTest extends TestCase
             );
             Notification::assertNotSentTo(
                 [$user],
+                DepositTransactionNotification::class
+            );
+        }
+    }
+
+    public function test_cant_do_transaction_if_balance_is_insufficient(): void
+    {
+        Notification::fake();
+        $senderUser = User::factory()->create();
+        $senderBankAccount = BankAccount::factory()->for($senderUser)->create();
+        $senderBankAccountCard = BankAccountCard::factory()->for($senderUser)->for($senderBankAccount)->create();
+        $receiverUser = User::factory()->create();
+        $receiverBankAccount = BankAccount::factory()->for($receiverUser)->create();
+        $receiverBankAccountCard = BankAccountCard::factory()->for($receiverUser)->for($receiverBankAccount)->create();
+
+        $service = new TransactionService;
+
+        try {
+            $service->create(
+                $senderUser,
+                $senderBankAccountCard,
+                $receiverBankAccountCard->card_number,
+                $amount = $senderBankAccount->balance + 1
+            );
+            $this->fail('The exception was not thrown.');
+        } catch (InsufficientBalanceTransactionException $exception) {
+            $this->assertDatabaseCount('transactions', 0);
+            $this->assertDatabaseHas('bank_accounts', [
+                'id' => $senderBankAccount->id,
+                'balance' => $senderBankAccount->balance,
+            ]);
+            Notification::assertNotSentTo(
+                [$senderUser],
+                WithdrawTransactionNotification::class
+            );
+            Notification::assertNotSentTo(
+                [$receiverUser],
                 DepositTransactionNotification::class
             );
         }

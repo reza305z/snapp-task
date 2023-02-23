@@ -16,7 +16,7 @@ class UserResource extends JsonResource
     {
         return [
             'name' => $this->name,
-            'transactions_count' => $this->transactions_count,
+            'sent_transactions_count' => $this->sent_transactions_count,
             'transactions' => TransactionResource::collection($this->whenLoaded('transactions')),
         ];
     }

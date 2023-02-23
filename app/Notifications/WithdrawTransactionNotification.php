@@ -44,7 +44,7 @@ class WithdrawTransactionNotification extends Notification implements ShouldQueu
         return [
             'account_number' => $this->accountNumber,
             'amount' => $this->amount,
-            'balance' => $this->method,
+            'method' => $this->method,
             'balance' => $this->balance,
             'date_time' => $this->dateTime,
         ];

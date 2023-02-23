@@ -15,6 +15,6 @@ class TransactionWage extends Model
      * @var array
      */
     protected $fillable = [
-        'amount'
+        'amount',
     ];
 }

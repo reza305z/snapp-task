@@ -3,7 +3,6 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -42,20 +41,33 @@ class User extends Authenticatable
     }
 
     /**
-     * Get all of the transactions for the User
+     * Get all of the sent transactions for the User
      */
-    public function transactions(): HasManyThrough
+    public function sentTransactions(): HasManyThrough
     {
-        return $this->hasManyThrough(Transaction::class, BankAccountCard::class);
+        return $this->hasManyThrough(Transaction::class, BankAccountCard::class, 'user_id', 'sender_card_id');
     }
 
-    public function scopeUsersWithMostTransactions($query, int $userNumber, int $transactionNumber)
+    /**
+     * Get all of the received transactions for the User
+     */
+    public function receivedTransactions(): HasManyThrough
     {
-        $query->withCount('transactions')
-            ->with(['transactions' => function ($query) use ($transactionNumber) {
+        return $this->hasManyThrough(Transaction::class, BankAccountCard::class, 'user_id', 'receiver_card_id');
+    }
+
+    public function scopeUsersWithMostTransactions($query, int $userNumber, int $transactionNumber): void
+    {
+        $query->withCount('sentTransactions')
+            ->with(['sentTransactions' => function ($query) use ($transactionNumber) {
                 $query->limit($transactionNumber);
             }])
-            ->orderBy('transactions_count', 'desc')
+            ->orderBy('sent_transactions_count', 'desc')
             ->limit($userNumber);
+    }
+
+    public function scopeWhereMobile($query, string $mobile): void
+    {
+        $query->where('mobile', $mobile);
     }
 }

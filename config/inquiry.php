@@ -14,7 +14,7 @@ return [
     ],
 
     'map' => [
-        'zarinpal' => \App\Lib\Inquiry\Drivers\Finnotech\Finnotech::class,
+        'finnotech' => \App\Lib\Inquiry\Drivers\Finnotech::class,
     ],
 
 ];

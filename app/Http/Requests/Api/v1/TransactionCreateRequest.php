@@ -32,11 +32,9 @@ class TransactionCreateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $bankAccountCard = $this->route('bank_account_card');
-
         return [
             'receiver_card_number' => ['required', 'string', new ValidCardNumber, 'exists:bank_account_cards,card_number'],
-            'amount' => ['required', 'integer', 'between:10_000,500_000_000', "gte:{$bankAccountCard->bankAccount->balance}"],
+            'amount' => ['required', 'integer', 'between:10000,500000000'],
         ];
     }
 }

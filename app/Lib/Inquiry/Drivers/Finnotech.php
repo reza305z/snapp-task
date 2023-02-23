@@ -29,8 +29,10 @@ class Finnotech implements InquiryInterface
             return $response->object()->result['result'] === '0';
         } elseif ($response->failed() && $response->object()?->status === self::FAILED) {
             Log::warning("Finnotech api connection failed with message: {$response->object()?->error['message']}");
+        } else {
+            Log::warning('Finnotech api connection failed without error message.');
         }
-        Log::warning('Finnotech api connection failed without error message.');
+
         $response->throwUnlessStatus(200);
     }
 }

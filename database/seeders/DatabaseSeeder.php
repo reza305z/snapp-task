@@ -10,7 +10,6 @@ use App\Models\Transaction;
 use App\Models\TransactionWage;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -19,7 +18,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $users = User::factory(10)->create();
+        User::factory()->create([
+            'name' => 'test',
+            'mobile' => '09123456789',
+        ]);
+        User::factory(10)->create();
+
+        $users = User::all();
         foreach ($users as $user) {
             $BankAccount = BankAccount::factory()->for($user)->create();
             BankAccountCard::factory(2)
@@ -28,13 +33,15 @@ class DatabaseSeeder extends Seeder
                 ->create();
         }
 
-        $bankAccountCards = BankAccountCard::pluck('id')->toArray();
+        $bankAccountCards = BankAccountCard::pluck('id');
 
-        Transaction::factory(100)
-            ->has(TransactionWage::factory())
-            ->create([
-                'sender_card_id' => array_rand($bankAccountCards),
-                'receiver_card_id' => array_rand($bankAccountCards),
-            ]);
+        for ($i = 0; $i < 100; $i++) {
+            Transaction::factory()
+                ->has(TransactionWage::factory())
+                ->create([
+                    'sender_card_id' => $bankAccountCards->random(),
+                    'receiver_card_id' => $bankAccountCards->random(),
+                ]);
+        }
     }
 }

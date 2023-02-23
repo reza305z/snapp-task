@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\v1\AuthController;
 use App\Http\Controllers\Api\v1\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,7 +15,15 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
-    Route::post('/transaction/{bank_account_card:unique_id}', [TransactionController::class, 'create'])->can('create', 'bank_account_card');
-    Route::get('/user/index/most-transaction', [TransactionController::class, 'usersWithMostTransactions']);
+Route::prefix('v1')->group(function () {
+    // auth
+    Route::post('/login', [AuthController::class, 'login']); // just for testing purposes
+
+    Route::middleware(['auth:sanctum'])->group(function () {
+        // transaction
+        Route::prefix('transaction')->controller(TransactionController::class)->group(function () {
+            Route::post('/{bank_account_card:unique_id}', 'create')->can('create', 'bank_account_card');
+            Route::get('/top-users', 'usersWithMostTransactions');
+        });
+    });
 });

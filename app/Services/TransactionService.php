@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\InsufficientBalanceTransactionException;
 use App\Exceptions\SameAccountTransactionException;
 use App\Models\BankAccountCard;
 use App\Models\Enums\TransactionStatusEnum;
@@ -21,13 +22,20 @@ class TransactionService
         string $receiverCardNumber,
         int $amount
     ): Transaction {
-
         $receiverBankAccountCard = BankAccountCard::firstWhere('card_number', $receiverCardNumber);
-
-        throw_if($receiverBankAccountCard->bankAccount->is($senderBankAccountCard->bankAccount), SameAccountTransactionException::class);
 
         try {
             DB::beginTransaction();
+
+            $senderBankAccount = $senderBankAccountCard->bankAccount()->lockForUpdate()->first();
+            $receiverBankAccount = $receiverBankAccountCard->bankAccount()->lockForUpdate()->first();
+
+            throw_if($receiverBankAccountCard->bankAccount->is($senderBankAccount), SameAccountTransactionException::class);
+
+            throw_if($amount > $senderBankAccount->balance, InsufficientBalanceTransactionException::class);
+
+            $senderBankAccount->decrement('balance', $amount);
+            $receiverBankAccount->increment('balance', $amount);
             $transaction = Transaction::create([
                 'sender_card_id' => $senderBankAccountCard->id,
                 'receiver_card_id' => $receiverBankAccountCard->id,
@@ -37,28 +45,26 @@ class TransactionService
             $transaction->transactionWage()->create([
                 'amount' => 5_000,
             ]);
-            $senderBankAccountCard->bankAccount()->decrement('balance', $amount);
-            $receiverBankAccountCard->bankAccount()->increment('balance', $amount);
             DB::commit();
         } catch (Exception $exception) {
             DB::rollBack();
             Log::critical('An error occurred when doing the transaction.', ['exception' => $exception->getMessage()]);
-            throw new Exception();
+            throw $exception;
         }
 
         $senderUser->notify(new WithdrawTransactionNotification(
-            accountNumber: $senderBankAccountCard->bankAccount->account_number,
+            accountNumber: $senderBankAccount->account_number,
             amount: number_format($amount),
             method: 'درگاه پرداخت',
-            balance: $senderBankAccountCard->bankAccount->balance,
+            balance: $senderBankAccount->balance,
             dateTime: $dateTime = verta($transaction->created_at)->format('Y/m/d H:i')
         ));
 
         $receiverBankAccountCard->user->notify(new DepositTransactionNotification(
-            accountNumber: $receiverBankAccountCard->bankAccount->account_number,
+            accountNumber: $receiverBankAccount->account_number,
             amount: number_format($amount),
             method: 'درگاه پرداخت',
-            balance: $receiverBankAccountCard->bankAccount->balance + $amount,
+            balance: $receiverBankAccount->balance + $amount,
             dateTime: $dateTime
         ));
 

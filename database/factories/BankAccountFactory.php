@@ -18,7 +18,7 @@ class BankAccountFactory extends Factory
     {
         return [
             'account_number' => fake()->unique()->numberBetween(1_000_000_000, 9_999_999_999),
-            'balance' => fake()->numberBetween(1_000, 100_000_000)
+            'balance' => fake()->numberBetween(1_000, 100_000_000),
         ];
     }
 }

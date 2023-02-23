@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Exceptions\InsufficientBalanceTransactionException;
 use App\Exceptions\SameAccountTransactionException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\v1\TransactionCreateRequest;
@@ -19,7 +20,6 @@ class TransactionController extends Controller
         BankAccountCard $bankAccountCard,
         TransactionService $transactionService
     ) {
-
         try {
             $transaction = $transactionService->create(
                 senderUser: $request->user(),
@@ -27,22 +27,13 @@ class TransactionController extends Controller
                 receiverCardNumber: $request->validated()['receiver_card_number'],
                 amount: $request->validated()['amount']
             );
-        } catch (SameAccountTransactionException $exception) {
-            return $this->jsonResponse(
-                message: $exception->getMessage(),
-                status: $exception->getCode()
-            );
+        } catch (SameAccountTransactionException|InsufficientBalanceTransactionException $exception) {
+            return $this->jsonResponse(message: $exception->getMessage(), status: $exception->getCode());
         } catch (Exception $exception) {
-            return $this->jsonResponse(
-                message: __('message.transaction.server_error'),
-                status: 500
-            );
+            return $this->jsonResponse(message: __('message.transaction.server_error'), status: 500);
         }
 
-        return $this->jsonResponse(
-            data: new TransactionResource($transaction),
-            message: __('message.transaction.server_error')
-        );
+        return $this->jsonResponse(data: new TransactionResource($transaction), message: __('message.transaction.successful'));
     }
 
     public function usersWithMostTransactions()

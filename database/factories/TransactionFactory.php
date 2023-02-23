@@ -19,7 +19,7 @@ class TransactionFactory extends Factory
     {
         return [
             'amount' => fake()->numberBetween(10_000, 500_000_000),
-            'status' => fake()->randomElement(array_column(TransactionStatusEnum::cases(), 'value'))
+            'status' => fake()->randomElement(array_column(TransactionStatusEnum::cases(), 'value')),
         ];
     }
 }
