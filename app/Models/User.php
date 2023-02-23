@@ -3,7 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -19,26 +22,39 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
-        'email',
-        'password',
+        'mobile',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
+     * Get all of the bankAccountCards for the User
      */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    public function bankAccountCards(): HasMany
+    {
+        return $this->hasMany(BankAccountCard::class);
+    }
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
+     * Get all of the transactions for the User
      */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-    ];
+    public function transactions(): HasManyThrough
+    {
+        return $this->hasManyThrough(Transaction::class, BankAccountCard::class);
+    }
+
+    public function scopeWhereCardNumberIs($query, string $cardNumber)
+    {
+        $query->whereHas('bankAccountCard', function (Builder $query) use ($cardNumber) {
+            $query->where('card_number', $cardNumber);
+        });
+    }
+
+    public function scopeUsersWithMostTransactions($query, int $userNumber, int $transactionNumber)
+    {
+        $query->withCount('transactions')
+            ->with(['transactions' => function ($query) use ($transactionNumber) {
+                $query->limit($transactionNumber);
+            }])
+            ->orderBy('transactions_count', 'desc')
+            ->limit($userNumber);
+    }
 }

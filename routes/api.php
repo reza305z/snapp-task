@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\v1\TransactionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::prefix('v1')->group(function () {
+    Route::post('/transaction/{bank_account_card:unique_id}', [TransactionController::class, 'create'])->can('create', 'bank_account_card');
+    Route::get('/user/index/most-transaction', [TransactionController::class, 'usersWithMostTransactions']);
 });
