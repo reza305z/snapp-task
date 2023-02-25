@@ -48,7 +48,7 @@ class TransactionService
             DB::commit();
         } catch (Exception $exception) {
             DB::rollBack();
-            Log::critical('An error occurred when doing the transaction.', ['exception' => $exception->getMessage()]);
+            Log::critical('An error occurred while doing the transaction.', ['exception' => $exception->getMessage()]);
             throw $exception;
         }
 

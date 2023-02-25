@@ -19,15 +19,25 @@ class TransactionServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected User $senderUser;
+    protected BankAccount $senderBankAccount;
+    protected BankAccountCard $senderBankAccountCard;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Notification::fake();
+        $this->senderUser = User::factory()->create();
+        $this->senderBankAccount = BankAccount::factory()->for($this->senderUser)->create();
+        $this->senderBankAccountCard = BankAccountCard::factory()->for($this->senderUser)->for($this->senderBankAccount)->create();
+    }
+
     /**
      * A basic unit test example.
      */
     public function test_can_deposit_money_to_another_bank_account(): void
     {
-        Notification::fake();
-        $senderUser = User::factory()->create();
-        $senderBankAccount = BankAccount::factory()->for($senderUser)->create();
-        $senderBankAccountCard = BankAccountCard::factory()->for($senderUser)->for($senderBankAccount)->create();
         $receiverUser = User::factory()->create();
         $receiverBankAccount = BankAccount::factory()->for($receiverUser)->create();
         $receiverBankAccountCard = BankAccountCard::factory()->for($receiverUser)->for($receiverBankAccount)->create();
@@ -35,30 +45,30 @@ class TransactionServiceTest extends TestCase
         $service = new TransactionService;
 
         $service->create(
-            $senderUser,
-            $senderBankAccountCard,
+            $this->senderUser,
+            $this->senderBankAccountCard,
             $receiverBankAccountCard->card_number,
-            $amount = mt_rand(10_000, $senderBankAccount->balance)
+            $amount = mt_rand(10_000, $this->senderBankAccount->balance)
         );
 
-        $this->assertDatabaseCount('transactions', 1);
-        $this->assertDatabaseHas('transactions', [
-            'sender_card_id' => $senderBankAccountCard->id,
-            'receiver_card_id' => $receiverBankAccountCard->id,
-            'amount' => $amount,
-            'status' => TransactionStatusEnum::Done,
-        ]);
-        $this->assertDatabaseHas('bank_accounts', [
-            'id' => $senderBankAccount->id,
-            'balance' => $senderBankAccount->balance - $amount,
-        ]);
-        $this->assertDatabaseHas('bank_accounts', [
-            'id' => $receiverBankAccount->id,
-            'balance' => $receiverBankAccount->balance + $amount,
-        ]);
+        $this->assertDatabaseCount('transactions', 1)
+            ->assertDatabaseHas('transactions', [
+                'sender_card_id' => $this->senderBankAccountCard->id,
+                'receiver_card_id' => $receiverBankAccountCard->id,
+                'amount' => $amount,
+                'status' => TransactionStatusEnum::Done,
+            ])
+            ->assertDatabaseHas('bank_accounts', [
+                'id' => $this->senderBankAccount->id,
+                'balance' => $this->senderBankAccount->balance - $amount,
+            ])
+            ->assertDatabaseHas('bank_accounts', [
+                'id' => $receiverBankAccount->id,
+                'balance' => $receiverBankAccount->balance + $amount,
+            ]);
 
         Notification::assertSentTo(
-            [$senderUser],
+            [$this->senderUser],
             WithdrawTransactionNotification::class
         );
         Notification::assertSentTo(
@@ -69,34 +79,31 @@ class TransactionServiceTest extends TestCase
 
     public function test_cant_use_same_bank_account(): void
     {
-        Notification::fake();
-        $user = User::factory()->create();
-        $bankAccount = BankAccount::factory()->for($user)->create();
-        $senderBankAccountCard = BankAccountCard::factory()->for($user)->for($bankAccount)->create();
-        $receiverBankAccountCard = BankAccountCard::factory()->for($user)->for($bankAccount)->create();
+        $receiverBankAccountCard = BankAccountCard::factory()->for($this->senderUser)->for($this->senderBankAccount)->create();
 
         $service = new TransactionService;
 
         try {
             $service->create(
-                $user,
-                $senderBankAccountCard,
+                $this->senderUser,
+                $this->senderBankAccountCard,
                 $receiverBankAccountCard->card_number,
                 mt_rand(10_000, 500_000_000)
             );
             $this->fail('The exception was not thrown.');
         } catch (SameAccountTransactionException $exception) {
-            $this->assertDatabaseCount('transactions', 0);
-            $this->assertDatabaseHas('bank_accounts', [
-                'id' => $bankAccount->id,
-                'balance' => $bankAccount->balance,
-            ]);
+            $this->assertDatabaseCount('transactions', 0)
+                ->assertDatabaseHas('bank_accounts', [
+                    'id' => $this->senderBankAccount->id,
+                    'balance' => $this->senderBankAccount->balance,
+                ]);
+
             Notification::assertNotSentTo(
-                [$user],
+                [$this->senderUser],
                 WithdrawTransactionNotification::class
             );
             Notification::assertNotSentTo(
-                [$user],
+                [$this->senderUser],
                 DepositTransactionNotification::class
             );
         }
@@ -104,10 +111,6 @@ class TransactionServiceTest extends TestCase
 
     public function test_cant_do_transaction_if_balance_is_insufficient(): void
     {
-        Notification::fake();
-        $senderUser = User::factory()->create();
-        $senderBankAccount = BankAccount::factory()->for($senderUser)->create();
-        $senderBankAccountCard = BankAccountCard::factory()->for($senderUser)->for($senderBankAccount)->create();
         $receiverUser = User::factory()->create();
         $receiverBankAccount = BankAccount::factory()->for($receiverUser)->create();
         $receiverBankAccountCard = BankAccountCard::factory()->for($receiverUser)->for($receiverBankAccount)->create();
@@ -116,20 +119,22 @@ class TransactionServiceTest extends TestCase
 
         try {
             $service->create(
-                $senderUser,
-                $senderBankAccountCard,
+                $this->senderUser,
+                $this->senderBankAccountCard,
                 $receiverBankAccountCard->card_number,
-                $amount = $senderBankAccount->balance + 1
+                $this->senderBankAccount->balance + 1
             );
+
             $this->fail('The exception was not thrown.');
         } catch (InsufficientBalanceTransactionException $exception) {
-            $this->assertDatabaseCount('transactions', 0);
-            $this->assertDatabaseHas('bank_accounts', [
-                'id' => $senderBankAccount->id,
-                'balance' => $senderBankAccount->balance,
-            ]);
+            $this->assertDatabaseCount('transactions', 0)
+                ->assertDatabaseHas('bank_accounts', [
+                    'id' => $this->senderBankAccount->id,
+                    'balance' => $this->senderBankAccount->balance,
+                ]);
+
             Notification::assertNotSentTo(
-                [$senderUser],
+                [$this->senderUser],
                 WithdrawTransactionNotification::class
             );
             Notification::assertNotSentTo(
