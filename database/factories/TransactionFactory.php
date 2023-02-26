@@ -18,6 +18,7 @@ class TransactionFactory extends Factory
     public function definition(): array
     {
         return [
+            'reference_id' => fake()->numberBetween(1_000_000_000, 9_999_999_999),
             'amount' => fake()->numberBetween(10_000, 500_000_000),
             'status' => fake()->randomElement(array_column(TransactionStatusEnum::cases(), 'value')),
         ];

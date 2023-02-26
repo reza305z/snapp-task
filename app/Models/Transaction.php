@@ -33,6 +33,17 @@ class Transaction extends Model
         'status' => TransactionStatusEnum::class,
     ];
 
+    protected static function booted()
+    {
+        static::creating(function ($transaction) {
+            do {
+                $referenceId = mt_rand(1_000_000_000, 9_999_999_999);
+            } while (static::where('reference_id', $referenceId)->exists());
+
+            $transaction->reference_id = $referenceId;
+        });
+    }
+
     /**
      * Get the transactionWage associated with the Transaction
      */

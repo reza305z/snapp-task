@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('sender_card_id')->constrained('bank_account_cards');
             $table->foreignId('receiver_card_id')->constrained('bank_account_cards');
+            $table->string('reference_id')->unique();
             $table->unsignedBigInteger('amount');
             $table->tinyInteger('status');
             $table->timestamps();
