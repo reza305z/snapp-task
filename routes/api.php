@@ -23,7 +23,7 @@ Route::prefix('v1')->group(function () {
         // transaction
         Route::prefix('transaction')->controller(TransactionController::class)->group(function () {
             Route::post('/{bank_account_card:unique_id}', 'create')->can('create', 'bank_account_card');
-            Route::get('/top-users', 'usersWithMostTransactions');
+            Route::get('/top-users', 'topUsers');
         });
     });
 });

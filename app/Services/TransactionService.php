@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\DepositTransactionNotification;
 use App\Notifications\WithdrawTransactionNotification;
 use Exception;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -69,5 +70,13 @@ class TransactionService
         ));
 
         return $transaction;
+    }
+
+    public function topUsers(int $userNumber, int $transactionNumber): Collection
+    {
+        return User::usersWithMostTransactions(
+            userNumber: $userNumber,
+            transactionNumber: $transactionNumber
+        )->get();
     }
 }
